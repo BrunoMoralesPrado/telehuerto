@@ -4,18 +4,60 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.PersonOutline
+import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.Sensors
+import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,40 +65,83 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.telehuerto.data.HuertoRepository
 import com.example.telehuerto.data.NPKValues
-import com.example.telehuerto.ui.theme.*
+import com.example.telehuerto.data.PlantStatus
+import com.example.telehuerto.ui.theme.AlertCritical
+import com.example.telehuerto.ui.theme.AlertCriticalBg
+import com.example.telehuerto.ui.theme.BackgroundBeige
+import com.example.telehuerto.ui.theme.BorderSubtle
+import com.example.telehuerto.ui.theme.CardBackground
+import com.example.telehuerto.ui.theme.DividerColor
+import com.example.telehuerto.ui.theme.GreenPrimary
+import com.example.telehuerto.ui.theme.GreenSoft
+import com.example.telehuerto.ui.theme.HumidityBlue
+import com.example.telehuerto.ui.theme.NutrientGreen
+import com.example.telehuerto.ui.theme.SkyWeather
+import com.example.telehuerto.ui.theme.SkyWeatherBg
+import com.example.telehuerto.ui.theme.StatusAttention
+import com.example.telehuerto.ui.theme.StatusAttentionBg
+import com.example.telehuerto.ui.theme.StatusHealthyBg
+import com.example.telehuerto.ui.theme.SunYellow
+import com.example.telehuerto.ui.theme.SurfaceTinted
+import com.example.telehuerto.ui.theme.SyncPendingBg
+import com.example.telehuerto.ui.theme.TextOnDark
+import com.example.telehuerto.ui.theme.TextPrimary
+import com.example.telehuerto.ui.theme.TextSecondary
 import kotlin.math.roundToInt
 
 @Composable
-fun ArduinoSimDialog(onDismiss: () -> Unit) {
+fun ArduinoSimDialog(
+    onDismiss: () -> Unit,
+    onOpenSyncCenter: () -> Unit = {},
+    onLogout: () -> Unit = {}
+) {
     val activePlants = HuertoRepository.activePlants()
     val device = HuertoRepository.arduinoDevice
 
-    var selectedPlantId by remember {
+    var selectedPlantId by rememberSaveable {
         mutableStateOf(
             activePlants.firstOrNull { it.id == HuertoRepository.selectedPlantId }?.id
                 ?: activePlants.firstOrNull()?.id
-                ?: "albahaca"
+                ?: ""
         )
     }
 
-    val currentPlant = HuertoRepository.getPlantById(selectedPlantId) ?: activePlants.firstOrNull()
+    val currentPlant = HuertoRepository.getPlantById(selectedPlantId)?.takeIf { it.isActive }
+        ?: activePlants.firstOrNull()
 
-    var humidity by remember(selectedPlantId) { mutableIntStateOf(currentPlant?.humidity ?: 40) }
-    var sunPercentage by remember(selectedPlantId) { mutableIntStateOf(currentPlant?.sunPercentage ?: 66) }
-    var nitrogen by remember(selectedPlantId) { mutableIntStateOf(currentPlant?.npk?.n ?: 24) }
-    var phosphorus by remember(selectedPlantId) { mutableIntStateOf(currentPlant?.npk?.p ?: 48) }
-    var potassium by remember(selectedPlantId) { mutableIntStateOf(currentPlant?.npk?.k ?: 61) }
-    var temperature by remember { mutableIntStateOf(device.temperatureCelsius) }
-    var feedbackBanner by remember { mutableStateOf<String?>(null) }
+    var humidity by rememberSaveable(currentPlant?.id) {
+        mutableIntStateOf(currentPlant?.humidity ?: 68)
+    }
+    var sunPercentage by rememberSaveable(currentPlant?.id) {
+        mutableIntStateOf(currentPlant?.sunPercentage ?: 72)
+    }
+    var nitrogen by rememberSaveable(currentPlant?.id) {
+        mutableIntStateOf(currentPlant?.npk?.n ?: 70)
+    }
+    var phosphorus by rememberSaveable(currentPlant?.id) {
+        mutableIntStateOf(currentPlant?.npk?.p ?: 68)
+    }
+    var potassium by rememberSaveable(currentPlant?.id) {
+        mutableIntStateOf(currentPlant?.npk?.k ?: 74)
+    }
+    var temperature by rememberSaveable {
+        mutableIntStateOf(device.temperatureCelsius)
+    }
+    var feedbackBanner by rememberSaveable {
+        mutableStateOf("")
+    }
 
+    val previewNpkLabel = HuertoRepository.npkLabelFor(nitrogen, phosphorus, potassium)
     val previewNpk = NPKValues(
         n = nitrogen,
         p = phosphorus,
         k = potassium,
-        statusLabel = if (nitrogen < 35 || phosphorus < 35 || potassium < 35) "Bajos" else "Óptimos"
+        statusLabel = previewNpkLabel
     )
-    val previewHoursText = "${(sunPercentage * 0.075f).roundToInt()} h 30 min de sol"
-    val willNeedAttention = humidity < 45 || nitrogen < 35 || sunPercentage < 40
+    val previewHoursText = HuertoRepository.sunHoursFor(sunPercentage)
+    val previewLightLevel = HuertoRepository.lightLevelFor(sunPercentage)
+    val previewStatus = HuertoRepository.statusFor(humidity, nitrogen, sunPercentage)
+    val willNeedAttention = previewStatus == PlantStatus.REQUIERE_ATENCION
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -65,24 +150,29 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.90f),
+                .fillMaxHeight(0.92f),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = BackgroundBeige),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            border = BorderStroke(1.dp, BorderSubtle),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(22.dp)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Header
+                // Encabezado del diálogo
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = GreenPrimary,
@@ -90,25 +180,25 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Memory,
-                                    contentDescription = "Arduino IoT",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
+                                    imageVector = Icons.Outlined.Memory,
+                                    contentDescription = "Simulador de sensores",
+                                    tint = TextOnDark,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "NODO IOT & TELEMETRÍA",
+                                text = "PERFIL Y TELEMETRÍA LOCAL",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextSecondary,
                                 letterSpacing = 1.sp
                             )
                             Text(
-                                text = "Simulador Arduino",
-                                fontSize = 20.sp,
+                                text = "Simulador de sensores (datos de prueba)",
+                                fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
@@ -116,22 +206,24 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
                     }
                     IconButton(onClick = onDismiss) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.Outlined.Close,
                             contentDescription = "Cerrar",
                             tint = TextSecondary
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Section 1: User Authentication & Physical Arduino Pairing
+                // Sección 1: Información de cuenta, nodo vinculado, Centro Volley y Cerrar sesión
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardBackground)
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    border = BorderStroke(1.dp, BorderSubtle)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -139,14 +231,14 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.VerifiedUser,
+                                    imageVector = Icons.Outlined.VerifiedUser,
                                     contentDescription = null,
                                     tint = GreenPrimary,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "IDENTIDAD Y VINCULACIÓN FÍSICA",
+                                    text = "CUENTA Y NODO SIMULADO",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = GreenPrimary
@@ -154,7 +246,7 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
                             }
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFE2EDE0)
+                                color = StatusHealthyBg
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -167,7 +259,7 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "WiFi ${device.wifiSignalPercent}%",
+                                        text = "Serie ${device.id}",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = GreenPrimary
@@ -176,337 +268,440 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(GreenSoft),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.PersonOutline,
+                                    contentDescription = null,
+                                    tint = GreenPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${HuertoRepository.currentUserName} (${HuertoRepository.currentUserEmail})",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "Ciudad: ${HuertoRepository.currentCity} · ${device.model} (${device.id})",
+                                    fontSize = 12.sp,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
 
                         Text(
-                            text = "${device.model} · Serie: ${device.id}",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Propietario autenticado: ${HuertoRepository.currentUserName} (${HuertoRepository.currentUserEmail})",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                        Text(
-                            text = "MAC: A4:CF:12:8B:4E:01 · Sincronizado ${device.lastSyncText}",
+                            text = "No necesitas hardware físico conectado: ajusta los controles de abajo para inyectar lecturas de prueba en SQLite y verificar alertas en vivo.",
                             fontSize = 11.sp,
-                            color = TextSecondary
+                            color = TextSecondary,
+                            lineHeight = 15.sp
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = onOpenSyncCenter,
+                                modifier = Modifier.weight(1.2f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, BorderSubtle),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = SurfaceTinted,
+                                    contentColor = SkyWeather
+                                ),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CloudSync,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Centro de sincronización Volley",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
 
-                        // Pin Mapping badges
+                            OutlinedButton(
+                                onClick = onLogout,
+                                modifier = Modifier.weight(0.85f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, AlertCritical.copy(alpha = 0.4f)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = AlertCriticalBg.copy(alpha = 0.5f),
+                                    contentColor = AlertCritical
+                                ),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.Logout,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Cerrar sesión",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (activePlants.isEmpty() || currentPlant == null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        border = BorderStroke(1.dp, BorderSubtle)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Eco,
+                                contentDescription = null,
+                                tint = GreenPrimary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text(
+                                text = "No hay plantas activas para simular",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "Registra o reactiva una planta en tu huerto para enviarle lecturas de prueba.",
+                                fontSize = 12.sp,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                } else {
+                    // Sección 2: Selector de planta activa
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "1. PLANTA ACTIVA A SIMULAR",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary,
+                            letterSpacing = 0.8.sp
+                        )
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            PinBadge("A0", "Humedad Suelo")
-                            PinBadge("A1", "LDR Luz Solar")
-                            PinBadge("A2", "Sonda NPK RS485")
-                            PinBadge("A3", "DHT22 Temp")
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = BackgroundBeige,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "🔒 Privacidad de datos: Cada placa Arduino incluye su ID único (${device.id}) y token criptográfico asociado a ${device.assignedUserEmail}. Así el servidor distingue este huerto y bloquea el acceso a terceros.",
-                                fontSize = 11.sp,
-                                color = TextSecondary,
-                                lineHeight = 15.sp,
-                                modifier = Modifier.padding(10.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Section 2: Plant selector & Quick Scenarios
-                Text(
-                    text = "1. SELECCIONA LA PLANTA A SIMULAR",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 0.8.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    activePlants.forEach { plant ->
-                        val isSelected = plant.id == selectedPlantId
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = if (isSelected) GreenPrimary else CardBackground,
-                            border = if (isSelected) null else BorderStroke(1.dp, GreenSecondary.copy(alpha = 0.4f)),
-                            modifier = Modifier.clickable {
-                                selectedPlantId = plant.id
-                                feedbackBanner = null
-                            }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Eco,
-                                    contentDescription = null,
-                                    tint = if (isSelected) Color.White else GreenPrimary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Column {
-                                    Text(
-                                        text = plant.name,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) Color.White else TextPrimary
-                                    )
-                                    Text(
-                                        text = plant.sensorChannel,
-                                        fontSize = 10.sp,
-                                        color = if (isSelected) Color.White.copy(alpha = 0.8f) else TextSecondary
-                                    )
+                            activePlants.forEach { plant ->
+                                val isSelected = plant.id == currentPlant.id
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isSelected) GreenPrimary else CardBackground,
+                                    border = if (isSelected) null else BorderStroke(1.dp, BorderSubtle),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            selectedPlantId = plant.id
+                                            feedbackBanner = ""
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Eco,
+                                            contentDescription = null,
+                                            tint = if (isSelected) TextOnDark else GreenPrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Column {
+                                            Text(
+                                                text = plant.name,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) TextOnDark else TextPrimary
+                                            )
+                                            Text(
+                                                text = plant.sensorChannel,
+                                                fontSize = 10.sp,
+                                                color = if (isSelected) TextOnDark.copy(alpha = 0.8f) else TextSecondary
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "2. ESCENARIOS RÁPIDOS DE PRUEBA",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 0.8.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    QuickScenarioChip(
-                        label = "🔥 Sequía Crítica (18%)",
-                        tint = Color(0xFFB55B52),
-                        bg = Color(0xFFF7E1DC)
-                    ) {
-                        humidity = 18
-                        sunPercentage = 88
-                        nitrogen = 38
-                        temperature = 30
-                        feedbackBanner = null
-                    }
-                    QuickScenarioChip(
-                        label = "💧 Riego Óptimo (78%)",
-                        tint = Color(0xFF2B7A88),
-                        bg = Color(0xFFDFEFF2)
-                    ) {
-                        humidity = 78
-                        sunPercentage = 76
-                        nitrogen = 74
-                        phosphorus = 70
-                        potassium = 78
-                        temperature = 24
-                        feedbackBanner = null
-                    }
-                    QuickScenarioChip(
-                        label = "🌱 Déficit Nutrientes (N 20%)",
-                        tint = Color(0xFFB8862D),
-                        bg = Color(0xFFF9EDD4)
-                    ) {
-                        humidity = 62
-                        sunPercentage = 66
-                        nitrogen = 20
-                        phosphorus = 32
-                        potassium = 40
-                        temperature = 24
-                        feedbackBanner = null
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Section 3: Sliders for raw sensor readings
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardBackground)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    // Sección 3: Escenarios rápidos (Presets)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "LECTURAS DEL ARDUINO EN TIEMPO REAL",
+                            text = "2. ESCENARIOS RÁPIDOS DE PRUEBA",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextSecondary
+                            color = TextSecondary,
+                            letterSpacing = 0.8.sp
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Humidity Slider
-                        SensorSliderRow(
-                            title = "Pin A0 · Humedad del Suelo",
-                            valueText = "$humidity%",
-                            rawText = "ADC: ${(1023 - humidity * 6.2f).roundToInt()} raw",
-                            value = humidity.toFloat(),
-                            valueRange = 5f..98f,
-                            activeColor = Color(0xFF2B7A88),
-                            onValueChange = { humidity = it.roundToInt() }
-                        )
-
-                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = BackgroundBeige)
-
-                        // Sunlight Slider
-                        SensorSliderRow(
-                            title = "Pin A1 · Iluminación Solar (LDR)",
-                            valueText = "$sunPercentage%",
-                            rawText = "${sunPercentage * 45} lux · $previewHoursText",
-                            value = sunPercentage.toFloat(),
-                            valueRange = 10f..100f,
-                            activeColor = Color(0xFFB8862D),
-                            onValueChange = { sunPercentage = it.roundToInt() }
-                        )
-
-                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = BackgroundBeige)
-
-                        // Nitrogen NPK Slider
-                        SensorSliderRow(
-                            title = "Pin A2 · Nitrógeno y Nutrientes (NPK)",
-                            valueText = "N $nitrogen%",
-                            rawText = "P: $phosphorus% · K: $potassium%",
-                            value = nitrogen.toFloat(),
-                            valueRange = 10f..95f,
-                            activeColor = Color(0xFFB55B52),
-                            onValueChange = {
-                                nitrogen = it.roundToInt()
-                                phosphorus = (nitrogen + 12).coerceAtMost(95)
-                                potassium = (nitrogen + 18).coerceAtMost(95)
-                            }
-                        )
-
-                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = BackgroundBeige)
-
-                        // Temperature Slider
-                        SensorSliderRow(
-                            title = "Pin A3 · Temperatura Ambiental (DHT22)",
-                            valueText = "$temperature°C",
-                            rawText = if (temperature > 28) "Ambiente cálido" else "Rango ideal (18–26°C)",
-                            value = temperature.toFloat(),
-                            valueRange = 12f..38f,
-                            activeColor = GreenPrimary,
-                            onValueChange = { temperature = it.roundToInt() }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Section 4: Real-time Interpretation Preview (How data turns into decisions)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (willNeedAttention) Color(0xFFF9E3DC) else Color(0xFFE2EDE0)
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            QuickScenarioChip(
+                                icon = Icons.Outlined.WarningAmber,
+                                label = "Sequía Crítica (${HuertoRepository.HUMIDITY_MIN - 17}%)",
+                                tint = AlertCritical,
+                                bg = AlertCriticalBg
+                            ) {
+                                humidity = 18
+                                sunPercentage = 88
+                                nitrogen = 38
+                                phosphorus = 46
+                                potassium = 52
+                                temperature = 31
+                                feedbackBanner = ""
+                            }
+                            QuickScenarioChip(
+                                icon = Icons.Outlined.WaterDrop,
+                                label = "Óptimo (78%)",
+                                tint = SkyWeather,
+                                bg = SkyWeatherBg
+                            ) {
+                                humidity = 78
+                                sunPercentage = 76
+                                nitrogen = 75
+                                phosphorus = 72
+                                potassium = 78
+                                temperature = 24
+                                feedbackBanner = ""
+                            }
+                            QuickScenarioChip(
+                                icon = Icons.Outlined.Science,
+                                label = "Déficit N-P-K (N ${HuertoRepository.NITROGEN_MIN - 10}%)",
+                                tint = StatusAttention,
+                                bg = StatusAttentionBg
+                            ) {
+                                humidity = 62
+                                sunPercentage = 66
+                                nitrogen = 20
+                                phosphorus = 26
+                                potassium = 28
+                                temperature = 24
+                                feedbackBanner = ""
+                            }
+                        }
+                    }
+
+                    // Sección 4: Controles deslizantes (Humedad, Sol, N, P, K, Temperatura)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        border = BorderStroke(1.dp, BorderSubtle)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "TRADUCCIÓN A DECISIONES DEL USUARIO",
-                                fontSize = 11.sp,
+                                text = "VALORES DE SENSORES (UMBRALES: HUM ≥${HuertoRepository.HUMIDITY_MIN}% · SOL ≥${HuertoRepository.SUN_MIN}% · N ≥${HuertoRepository.NITROGEN_MIN}%)",
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (willNeedAttention) Color(0xFFB55B52) else GreenPrimary
+                                color = TextSecondary
                             )
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = Color.White.copy(alpha = 0.85f)
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            SensorSliderRow(
+                                title = "Humedad del sustrato",
+                                valueText = "$humidity%",
+                                rawText = if (humidity < HuertoRepository.HUMIDITY_MIN) {
+                                    "Bajo el mínimo (${HuertoRepository.HUMIDITY_MIN}%) · generará alerta"
+                                } else {
+                                    "Rango saludable (mínimo ${HuertoRepository.HUMIDITY_MIN}%)"
+                                },
+                                value = humidity.toFloat(),
+                                valueRange = 5f..98f,
+                                activeColor = HumidityBlue,
+                                onValueChange = {
+                                    humidity = it.roundToInt()
+                                    feedbackBanner = ""
+                                }
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DividerColor)
+
+                            SensorSliderRow(
+                                title = "Exposición solar",
+                                valueText = "$sunPercentage% ($previewLightLevel)",
+                                rawText = "$previewHoursText · mínimo recomendado ${HuertoRepository.SUN_MIN}%",
+                                value = sunPercentage.toFloat(),
+                                valueRange = 10f..100f,
+                                activeColor = SunYellow,
+                                onValueChange = {
+                                    sunPercentage = it.roundToInt()
+                                    feedbackBanner = ""
+                                }
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DividerColor)
+
+                            SensorSliderRow(
+                                title = "Nitrógeno (N)",
+                                valueText = "N $nitrogen%",
+                                rawText = if (nitrogen < HuertoRepository.NITROGEN_MIN) {
+                                    "Déficit (<${HuertoRepository.NITROGEN_MIN}%) · requiere fertilizante"
+                                } else {
+                                    "Follaje activo (mínimo ${HuertoRepository.NITROGEN_MIN}%)"
+                                },
+                                value = nitrogen.toFloat(),
+                                valueRange = 10f..95f,
+                                activeColor = NutrientGreen,
+                                onValueChange = {
+                                    nitrogen = it.roundToInt()
+                                    feedbackBanner = ""
+                                }
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DividerColor)
+
+                            SensorSliderRow(
+                                title = "Fósforo (P) y Potasio (K)",
+                                valueText = "P $phosphorus% · K $potassium%",
+                                rawText = "Nivel general N-P-K: $previewNpkLabel",
+                                value = phosphorus.toFloat(),
+                                valueRange = 10f..95f,
+                                activeColor = GreenPrimary,
+                                onValueChange = {
+                                    val pVal = it.roundToInt()
+                                    phosphorus = pVal
+                                    potassium = (pVal + 6).coerceIn(10, 95)
+                                    feedbackBanner = ""
+                                }
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DividerColor)
+
+                            SensorSliderRow(
+                                title = "Temperatura ambiental del nodo",
+                                valueText = "$temperature°C",
+                                rawText = if (temperature > 28) "Ambiente cálido" else "Rango templado (18–28°C)",
+                                value = temperature.toFloat(),
+                                valueRange = 12f..38f,
+                                activeColor = StatusAttention,
+                                onValueChange = {
+                                    temperature = it.roundToInt()
+                                    feedbackBanner = ""
+                                }
+                            )
+                        }
+                    }
+
+                    // Sección 5: Interpretación directa con HuertoRepository
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (willNeedAttention) AlertCriticalBg else StatusHealthyBg
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (willNeedAttention) AlertCritical.copy(alpha = 0.35f) else BorderSubtle
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (willNeedAttention) "Requiere atención" else "Saludable",
+                                    text = "DIAGNÓSTICO PREVIO",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (willNeedAttention) Color(0xFFB55B52) else GreenPrimary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    color = if (willNeedAttention) AlertCritical else GreenPrimary
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = CardBackground
+                                ) {
+                                    Text(
+                                        text = previewStatus.label,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (willNeedAttention) AlertCritical else GreenPrimary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            InterpretationRow(
+                                icon = Icons.Outlined.WaterDrop,
+                                tint = HumidityBlue,
+                                text = "Humedad: ${HuertoRepository.interpretHumidity(humidity)}"
+                            )
+                            InterpretationRow(
+                                icon = Icons.Outlined.WbSunny,
+                                tint = SunYellow,
+                                text = "Luz: ${HuertoRepository.interpretLight(sunPercentage, previewHoursText)}"
+                            )
+                            InterpretationRow(
+                                icon = Icons.Outlined.Science,
+                                tint = NutrientGreen,
+                                text = "NPK ($previewNpkLabel): ${HuertoRepository.interpretNPK(previewNpk)}"
+                            )
+                        }
+                    }
+
+                    if (feedbackBanner.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = GreenPrimary,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CheckCircle,
+                                    contentDescription = null,
+                                    tint = TextOnDark,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = feedbackBanner,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextOnDark
                                 )
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "💧 Humedad: ${HuertoRepository.interpretHumidity(humidity)}",
-                            fontSize = 12.sp,
-                            color = TextPrimary,
-                            lineHeight = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "☀️ Luz: ${HuertoRepository.interpretLight(sunPercentage, previewHoursText)}",
-                            fontSize = 12.sp,
-                            color = TextPrimary,
-                            lineHeight = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "🧪 NPK: ${HuertoRepository.interpretNPK(previewNpk)}",
-                            fontSize = 12.sp,
-                            color = TextPrimary,
-                            lineHeight = 16.sp
-                        )
                     }
                 }
 
-                if (feedbackBanner != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = GreenPrimary,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = feedbackBanner!!,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Action Buttons
+                // Botones de acción inferiores
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -522,9 +717,9 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
                         Text("Cerrar", color = GreenPrimary, fontWeight = FontWeight.Bold)
                     }
 
-                    Button(
-                        onClick = {
-                            if (currentPlant != null) {
+                    if (currentPlant != null) {
+                        Button(
+                            onClick = {
                                 HuertoRepository.updatePlantSensorReadings(
                                     plantId = currentPlant.id,
                                     humidity = humidity,
@@ -535,22 +730,25 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
                                     tempCelsius = temperature
                                 )
                                 HuertoRepository.selectPlant(currentPlant.id)
-                                feedbackBanner = "Lecturas enviadas a ${currentPlant.name}. Interfaz y alertas actualizadas."
-                            }
-                        },
-                        modifier = Modifier
-                            .weight(1.6f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Sensors,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Aplicar al Huerto", fontWeight = FontWeight.Bold)
+                                feedbackBanner = "Lecturas guardadas en ${currentPlant.name}. Tablero y alertas actualizados."
+                            },
+                            modifier = Modifier
+                                .weight(1.6f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GreenPrimary,
+                                contentColor = TextOnDark
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Sensors,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Aplicar lecturas", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -559,33 +757,36 @@ fun ArduinoSimDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun PinBadge(pin: String, label: String) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFFE2EDE0)
+private fun InterpretationRow(
+    icon: ImageVector,
+    tint: Color,
+    text: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = pin,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = GreenPrimary
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                color = TextPrimary
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            color = TextPrimary,
+            lineHeight = 16.sp
+        )
     }
 }
 
 @Composable
 private fun QuickScenarioChip(
+    icon: ImageVector,
     label: String,
     tint: Color,
     bg: Color,
@@ -594,15 +795,29 @@ private fun QuickScenarioChip(
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = bg,
-        modifier = Modifier.clickable(onClick = onClick)
+        border = BorderStroke(1.dp, tint.copy(alpha = 0.25f)),
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = tint,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = tint
+            )
+        }
     }
 }
 
@@ -622,7 +837,7 @@ private fun SensorSliderRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     fontSize = 13.sp,
@@ -635,13 +850,14 @@ private fun SensorSliderRow(
                     color = TextSecondary
                 )
             }
+            Spacer(modifier = Modifier.width(8.dp))
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = activeColor.copy(alpha = 0.14f)
             ) {
                 Text(
                     text = valueText,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = activeColor,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

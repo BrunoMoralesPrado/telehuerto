@@ -19,7 +19,39 @@ enum class LogType(val label: String) {
     ALERTA("ALERTA")
 }
 
-enum class PlantIconType { TOMATE, ALBAHACA, PIMIENTO, GENERIC }
+enum class SyncStatus(val label: String) {
+    SYNCED("Sincronizada"),
+    PENDING("Pendiente"),
+    ERROR("Error de red")
+}
+
+enum class PlantIconType(val displayName: String, val defaultSpecies: String) {
+    TOMATE("Tomate cherry", "Solanum lycopersicum"),
+    ALBAHACA("Albahaca", "Ocimum basilicum"),
+    PIMIENTO("Pimiento rojo", "Capsicum annuum"),
+    CEBOLLA("Cebolla", "Allium cepa"),
+    PAPA("Papa", "Solanum tuberosum"),
+    MANZANA("Manzano", "Malus domestica"),
+    ZANAHORIA("Zanahoria", "Daucus carota"),
+    FRESA("Fresa", "Fragaria × ananassa"),
+    LECHUGA("Lechuga", "Lactuca sativa"),
+    MENTA("Menta", "Mentha spicata"),
+    CHILE("Chile jalapeño", "Capsicum annuum"),
+    LIMON("Limonero", "Citrus × limon"),
+    AJO("Ajo", "Allium sativum"),
+    GENERIC("Brote general", "Planta de huerto")
+}
+
+data class UserAccount(
+    val id: Long = 0L,
+    val name: String,
+    val email: String,
+    val passwordHash: String = "",
+    val arduinoSerial: String = "ARD-01",
+    val city: String = "Ciudad de México",
+    val isLoggedIn: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)
 
 data class NPKValues(
     val n: Int,
@@ -29,6 +61,7 @@ data class NPKValues(
 )
 
 data class PlantActivity(
+    val id: Long = 0L,
     val title: String,
     val time: String,
     val isAlert: Boolean = false
@@ -36,6 +69,7 @@ data class PlantActivity(
 
 data class Plant(
     val id: String,
+    val userId: Long = 1L,
     val name: String,
     val species: String,
     val plantedDate: String,
@@ -48,10 +82,14 @@ data class Plant(
     val npk: NPKValues,
     val status: PlantStatus,
     val iconType: PlantIconType = PlantIconType.GENERIC,
+    val photoUri: String? = null,
     val arduinoId: String = "ARD-01",
     val sensorChannel: String = "Canal A1",
     val isActive: Boolean = true,
     val retiredReason: String? = null,
+    val remoteId: String? = null,
+    val syncStatus: SyncStatus = SyncStatus.SYNCED,
+    val updatedAt: Long = System.currentTimeMillis(),
     val recentActivities: List<PlantActivity> = emptyList()
 )
 
@@ -74,7 +112,10 @@ data class LogEntry(
     val title: String,
     val description: String,
     val plantId: String? = null,
-    val plantName: String? = null
+    val plantName: String? = null,
+    val photoUri: String? = null,
+    val remoteId: String? = null,
+    val syncStatus: SyncStatus = SyncStatus.SYNCED
 )
 
 data class ArduinoDevice(
@@ -87,3 +128,54 @@ data class ArduinoDevice(
     val wifiSignalPercent: Int,
     val assignedUserEmail: String
 )
+
+data class WeatherSnapshot(
+    val id: Long = 0L,
+    val city: String,
+    val latitude: Double,
+    val longitude: Double,
+    val temperatureC: Double,
+    val ambientHumidity: Int,
+    val uvIndex: Double,
+    val rainProbability: Int,
+    val weatherCode: Int,
+    val conditionLabel: String,
+    val gardenAdvice: String,
+    val fetchedAtText: String,
+    val fetchedAtMillis: Long = System.currentTimeMillis(),
+    val isFromCache: Boolean = false
+)
+
+data class SyncRecord(
+    val id: Long = 0L,
+    val httpMethod: String,
+    val endpoint: String,
+    val entityType: String,
+    val entityLabel: String,
+    val statusCode: Int,
+    val success: Boolean,
+    val message: String,
+    val createdAtText: String
+)
+
+sealed class NetworkUiState<out T> {
+    object Idle : NetworkUiState<Nothing>()
+    object Loading : NetworkUiState<Nothing>()
+    data class Success<T>(val data: T) : NetworkUiState<T>()
+    data class Error<T>(
+        val message: String,
+        val cachedData: T? = null,
+        val isOffline: Boolean = false
+    ) : NetworkUiState<T>()
+}
+
+data class CityOption(
+    val name: String,
+    val region: String,
+    val country: String,
+    val latitude: Double,
+    val longitude: Double
+) {
+    fun displayLabel(): String =
+        listOf(name, region, country).filter { it.isNotBlank() }.distinct().joinToString(", ")
+}

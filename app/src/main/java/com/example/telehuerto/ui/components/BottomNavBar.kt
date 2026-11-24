@@ -1,6 +1,8 @@
 package com.example.telehuerto.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -8,13 +10,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.telehuerto.data.HuertoRepository
 import com.example.telehuerto.ui.theme.AlertCritical
+import com.example.telehuerto.ui.theme.BorderSubtle
 import com.example.telehuerto.ui.theme.CardBackground
 import com.example.telehuerto.ui.theme.GreenPrimary
 import com.example.telehuerto.ui.theme.TextOnDark
@@ -55,12 +58,11 @@ data class NavItem(
 )
 
 /**
- * Barra inferior flotante: píldora blanca redondeada, la sección activa
- * se marca con un rectángulo verde y "Alertas" muestra cuántas hay abiertas.
+ * Barra inferior flotante minimalista: píldora blanca con borde sutil de 1.dp,
+ * sombra suave de 4.dp, indicador activo animado y badge reactivo de alertas.
  */
 @Composable
 fun BottomNavBar(navController: NavController, currentRoute: String) {
-    // Leer la lista de estado aquí hace que el badge se actualice solo.
     val alertCount = HuertoRepository.activeAlerts().size
 
     val items = listOf(
@@ -80,19 +82,20 @@ fun BottomNavBar(navController: NavController, currentRoute: String) {
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(
-                    elevation = 14.dp,
-                    shape = RoundedCornerShape(30.dp),
-                    ambientColor = GreenPrimary.copy(alpha = 0.18f),
-                    spotColor = GreenPrimary.copy(alpha = 0.18f)
+                    elevation = 4.dp,
+                    shape = RoundedCornerShape(28.dp),
+                    ambientColor = GreenPrimary.copy(alpha = 0.12f),
+                    spotColor = GreenPrimary.copy(alpha = 0.14f)
                 ),
-            shape = RoundedCornerShape(30.dp),
-            color = CardBackground
+            shape = RoundedCornerShape(28.dp),
+            color = CardBackground,
+            border = BorderStroke(1.dp, BorderSubtle)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .height(68.dp)
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -126,16 +129,18 @@ private fun BottomNavItem(
 ) {
     val background by animateColorAsState(
         targetValue = if (selected) GreenPrimary else Color.Transparent,
+        animationSpec = tween(durationMillis = 220),
         label = "navItemBackground"
     )
     val contentColor by animateColorAsState(
         targetValue = if (selected) TextOnDark else TextSecondary,
+        animationSpec = tween(durationMillis = 220),
         label = "navItemContent"
     )
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(background)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -143,7 +148,7 @@ private fun BottomNavItem(
                 role = Role.Tab,
                 onClick = onClick
             )
-            .padding(vertical = 8.dp),
+            .padding(vertical = 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -152,7 +157,7 @@ private fun BottomNavItem(
                 imageVector = item.icon,
                 contentDescription = item.label,
                 tint = contentColor,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(21.dp)
             )
             if (item.badgeCount > 0) {
                 Box(
@@ -182,7 +187,7 @@ private fun BottomNavItem(
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(top = 3.dp)
         )
     }
 }
